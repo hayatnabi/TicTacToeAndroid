@@ -1,242 +1,176 @@
 package compose.game.tictactoe
 
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.AnimationVector1D
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.graphics.nativeCanvas
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import compose.game.tictactoe.ui.theme.TicTacToeComposeTheme
+import kotlinx.coroutines.launch
+import kotlin.random.Random
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
             TicTacToeComposeTheme {
-                TicTacToeGameScreen()
-            }
-        }
-    }
-}
-
-@Preview
-@Composable
-fun TicTacToeGameScreen() {
-    var board by remember { mutableStateOf(List(3) { MutableList(3) { "" } }) }
-    var currentPlayer by remember { mutableStateOf("X") }
-    var player1Score by remember { mutableIntStateOf(0) }
-    var player2Score by remember { mutableIntStateOf(0) }
-    var winnerMessage by remember { mutableStateOf<String?>(null) }
-
-    fun checkWinner(): String? {
-        val lines = listOf(
-            // Rows
-            listOf(board[0][0], board[0][1], board[0][2]),
-            listOf(board[1][0], board[1][1], board[1][2]),
-            listOf(board[2][0], board[2][1], board[2][2]),
-            // Columns
-            listOf(board[0][0], board[1][0], board[2][0]),
-            listOf(board[0][1], board[1][1], board[2][1]),
-            listOf(board[0][2], board[1][2], board[2][2]),
-            // Diagonals
-            listOf(board[0][0], board[1][1], board[2][2]),
-            listOf(board[0][2], board[1][1], board[2][0])
-        )
-        for (line in lines) {
-            if (line.all { it == "X" }) return "X"
-            if (line.all { it == "O" }) return "O"
-        }
-        return null
-    }
-
-    fun isBoardFull(): Boolean {
-        return board.flatten().none { it.isEmpty() }
-    }
-
-    fun handleMove(row: Int, col: Int) {
-        if (board[row][col].isNotEmpty() || winnerMessage != null) return
-
-        board = board.toMutableList().apply {
-            this[row] = this[row].toMutableList().apply {
-                this[col] = currentPlayer
-            }
-        }
-
-        val winner = checkWinner()
-        if (winner != null) {
-            winnerMessage = "Player $winner wins!"
-            if (winner == "X") player1Score++ else player2Score++
-        } else if (isBoardFull()) {
-            winnerMessage = "It's a draw!"
-        } else {
-            currentPlayer = if (currentPlayer == "X") "O" else "X"
-        }
-    }
-
-    fun resetBoard() {
-        board = List(3) { MutableList(3) { "" } }
-        currentPlayer = "X"
-        winnerMessage = null
-    }
-
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color(0xFFE8F5E9)) // light green
-            .padding(16.dp),
-        verticalArrangement = Arrangement.SpaceBetween
-    ) {
-        Column {
-            // Scoreboard
-            Text("Scoreboard", fontWeight = FontWeight.Bold, fontSize = 20.sp, modifier = Modifier.align(Alignment.CenterHorizontally))
-
-            Spacer(Modifier.height(8.dp))
-
-            Text(
-                text = "Player X: $player1Score",
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(Color(0xFF4CAF50)) // Green
-                    .padding(8.dp),
-                color = Color.White,
-                textAlign = TextAlign.Center
-            )
-
-            Text(
-                text = "Player O: $player2Score",
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(Color(0xFF2196F3)) // Blue
-                    .padding(8.dp),
-                color = Color.White,
-                textAlign = TextAlign.Center
-            )
-
-            Spacer(Modifier.height(16.dp))
-
-            if (winnerMessage?.isNotEmpty() == true) {
-                Text(
-                    text = winnerMessage.toString(),
-                    fontSize = 22.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.Black,
-                    modifier = Modifier
-                        .padding(bottom = 16.dp)
-                        .align(Alignment.CenterHorizontally)
-                )
-            }
-        }
-
-        // Game board centered vertically and horizontally
-        Box(
-            modifier = Modifier.fillMaxWidth(),
-            contentAlignment = Alignment.Center
-        ) {
-            Column {
-                for (row in 0..2) {
-                    Row {
-                        for (col in 0..2) {
-                            Box(
-                                modifier = Modifier
-                                    .size(120.dp)
-                                    .drawBehind {
-                                        val strokeWidth = 0.7.dp.toPx()
-                                        val gray = Color.Gray
-
-                                        // Right border
-                                        if (col < 2) {
-                                            drawLine(
-                                                color = gray,
-                                                start = Offset(size.width, 0f),
-                                                end = Offset(size.width, size.height),
-                                                strokeWidth = strokeWidth
-                                            )
-                                        }
-                                        // Bottom border
-                                        if (row < 2) {
-                                            drawLine(
-                                                color = gray,
-                                                start = Offset(0f, size.height),
-                                                end = Offset(size.width, size.height),
-                                                strokeWidth = strokeWidth
-                                            )
-                                        }
-                                    }
-                                    .clickable { handleMove(row, col) },
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxSize()
-                                        .padding(3.dp)
-                                        .background(
-                                            when (board[row][col]) {
-                                                "X" -> Color(0xFFC8E6C9) // Green
-                                                "O" -> Color(0xFFBBDEFB) // Blue
-                                                else -> Color.Transparent
-                                            }
-                                        ),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Text(
-                                        board[row][col],
-                                        fontSize = 36.sp,
-                                        fontWeight = FontWeight.Bold
-                                    )
-                                }
-                            }
-                        }
-                    }
+                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
+                    WelcomeWidget(
+                        name = "Tic Tac Toe",
+                        modifier = Modifier.padding(innerPadding)
+                    )
                 }
             }
         }
+    }
+}
 
-        // Reset Button at Bottom Center
-        Button(
-            onClick = { resetBoard() },
-            colors = ButtonDefaults.buttonColors(
-                containerColor = Color(0xFFF44336), // Moderate red
-                contentColor = Color.White
-            ),
-            modifier = Modifier
-                .fillMaxWidth()
-                .align(Alignment.CenterHorizontally)
-                .padding(bottom = 16.dp)
+@Composable
+fun WelcomeWidget(name: String, modifier: Modifier = Modifier) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        // Background animation
+        AnimatedEmojiBackground()
+
+        // Foreground content
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text("Reset Game", fontWeight = FontWeight.Bold)
+            val context = LocalContext.current
+            Text(
+                text = "Welcome to $name!",
+                color = Color.Black,
+                style = TextStyle(
+                    fontStyle = FontStyle.Italic,
+                    fontWeight = FontWeight(500),
+                    fontSize = 24.sp // Increased font size
+                )
+            )
+
+            Spacer(modifier = Modifier.padding(top = 32.dp))
+
+            Button(
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color(0xFF00A86B), // Jade Green
+                    contentColor = Color.White
+                ),
+                onClick = { context.startActivity(Intent(context, GameActivity::class.java)) }
+            ) {
+                Text(text = "Start Game")
+            }
+
+            Button(
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color(0xFF2196F3), // Jade Green
+                    contentColor = Color.White
+                ),
+                onClick = { context.startActivity(Intent(context, SettingsActivity::class.java)) }
+            ) {
+                Text(text = "   Settings  ")
+            }
         }
     }
 }
+
+@Preview(showBackground = true)
+@Composable
+fun GreetingPreview() {
+    TicTacToeComposeTheme {
+        WelcomeWidget("Tic Tac Toe")
+    }
+}
+
+@Composable
+fun AnimatedEmojiBackground() {
+    val emojis = listOf("X", "O", "\uD83D\uDCA5 ", "🛦", "\uD83D\uDCA5\uD83D\uDE80", "☕")
+    val screenWidth = LocalConfiguration.current.screenWidthDp.dp
+    val screenHeight = LocalConfiguration.current.screenHeightDp.dp
+    val density = LocalDensity.current
+
+    val emojiItems = remember {
+        emojis.map {
+            val x = Random.nextFloat()
+            val y = Animatable(initialValue = Random.nextFloat())
+            EmojiItem(it, x, y)
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        emojiItems.forEach { item ->
+            launch {
+                while (true) {
+                    item.y.snapTo(1f)
+                    item.y.animateTo(
+                        targetValue = 0f,
+                        animationSpec = infiniteRepeatable(
+                            animation = tween(durationMillis = 7000 + Random.nextInt(3000), easing = LinearEasing),
+                            repeatMode = RepeatMode.Restart
+                        )
+                    )
+                }
+            }
+        }
+    }
+
+    Canvas(modifier = Modifier.fillMaxSize()) {
+        emojiItems.forEach { item ->
+            val xPx = item.x * size.width
+            val yPx = item.y.value * size.height
+            drawContext.canvas.nativeCanvas.drawText(
+                item.emoji,
+                xPx,
+                yPx,
+                android.graphics.Paint().apply {
+                    color = android.graphics.Color.BLACK
+                    textSize = 50f
+                    isAntiAlias = true
+                    alpha = 60  // 0 (fully transparent) to 255 (fully opaque)
+                }
+            )
+        }
+    }
+}
+
+data class EmojiItem(
+    val emoji: String,
+    val x: Float, // x position (as ratio of screen width)
+    val y: Animatable<Float, AnimationVector1D> // y position (0f to 1f, animated)
+)
+
+
 
