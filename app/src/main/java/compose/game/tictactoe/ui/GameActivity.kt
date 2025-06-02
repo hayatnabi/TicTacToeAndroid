@@ -20,6 +20,7 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
@@ -31,6 +32,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
@@ -40,6 +42,7 @@ import compose.game.tictactoe.R
 import compose.game.tictactoe.ui.theme.TicTacToeComposeTheme
 import compose.game.tictactoe.utils.MediaPlayerManager
 import compose.game.tictactoe.utils.MyApp
+import compose.game.tictactoe.utils.PreferencesManager
 import kotlinx.coroutines.delay
 
 class GameActivity : ComponentActivity() {
@@ -84,8 +87,8 @@ fun TicTacToeGameScreen() {
             listOf(Pair(0, 0), Pair(1, 0), Pair(2, 0)), // Col 0
             listOf(Pair(0, 1), Pair(1, 1), Pair(2, 1)), // Col 1
             listOf(Pair(0, 2), Pair(1, 2), Pair(2, 2)), // Col 2
-            listOf(Pair(0, 0), Pair(1, 1), Pair(2, 2)), // Diag
-            listOf(Pair(0, 2), Pair(1, 1), Pair(2, 0))  // Diag
+            listOf(Pair(0, 0), Pair(1, 1), Pair(2, 2)), // Diagonal 1
+            listOf(Pair(0, 2), Pair(1, 1), Pair(2, 0))  // Diagonal 2
         )
 
         for (line in lines) {
@@ -142,16 +145,26 @@ fun TicTacToeGameScreen() {
         winningLinePositions = null
     }
 
+    val context = LocalContext.current
+    val shouldFlickerWin by remember {
+        mutableStateOf(
+            PreferencesManager.get(context, "should_flicker", true)
+        )
+    }
+
     // Flicker logic: For the winning boxes, toggle visibility 3 times (flicker)
-    // We'll use a Boolean state that toggles every 300ms, 6 times (3 flickers = on-off-on-off-on-off)
-    val flickerVisible = remember { mutableStateOf(true) }
-    LaunchedEffect(winningLinePositions) {
-        if (winningLinePositions != null) {
-            repeat(6) {
-                flickerVisible.value = !flickerVisible.value
-                kotlinx.coroutines.delay(100)
+    // We'll use a Boolean state that toggles every 100ms, 6 times (3 flickers = on-off-on-off-on-off)
+    var flickerVisible = remember { mutableStateOf(true) }
+    if (shouldFlickerWin) {
+        flickerVisible = remember { mutableStateOf(true) }
+        LaunchedEffect(winningLinePositions) {
+            if (winningLinePositions != null) {
+                repeat(6) {
+                    flickerVisible.value = !flickerVisible.value
+                    delay(100)
+                }
+                flickerVisible.value = true // Ensure visible at the end
             }
-            flickerVisible.value = true // Ensure visible at the end
         }
     }
 
@@ -164,7 +177,12 @@ fun TicTacToeGameScreen() {
     ) {
         Column {
             // Scoreboard
-            Text("Scoreboard", fontWeight = FontWeight.Bold, fontSize = 20.sp, modifier = Modifier.align(Alignment.CenterHorizontally))
+            Text(
+                "Scoreboard",
+                fontWeight = FontWeight.Bold,
+                fontSize = 20.sp,
+                modifier = Modifier.align(Alignment.CenterHorizontally)
+            )
 
             Spacer(Modifier.height(8.dp))
 
@@ -212,7 +230,8 @@ fun TicTacToeGameScreen() {
                 for (row in 0..2) {
                     Row {
                         for (col in 0..2) {
-                            val isWinningBox = winningLinePositions?.contains(Pair(row, col)) == true
+                            val isWinningBox =
+                                winningLinePositions?.contains(Pair(row, col)) == true
                             val backgroundColor = when {
                                 isWinningBox && !flickerVisible.value -> Color.Transparent
                                 board[row][col] == "X" -> Color(0xFFC8E6C9) // Green

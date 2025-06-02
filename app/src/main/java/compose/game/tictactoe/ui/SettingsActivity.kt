@@ -91,31 +91,34 @@ fun SettingsWidget(modifier: Modifier = Modifier) {
     ) {
         SoundToggleRow()
 
+        // Flicker Toggle
+        FlickerToggleRow()
+
         // Dark Mode Toggle
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text(text = "Dark Mode", fontSize = 18.sp)
-            Switch(
-                checked = isDarkMode,
-                onCheckedChange = { isDarkMode = it }
-            )
-        }
+//        Row(
+//            verticalAlignment = Alignment.CenterVertically,
+//            horizontalArrangement = Arrangement.SpaceBetween,
+//            modifier = Modifier.fillMaxWidth()
+//        ) {
+//            Text(text = "Dark Mode", fontSize = 18.sp)
+//            Switch(
+//                checked = isDarkMode,
+//                onCheckedChange = { isDarkMode = it }
+//            )
+//        }
 
         // Play with "P" and "I" Switch
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text(text = "Play with \"P\" and \"I\"", fontSize = 18.sp)
-            Switch(
-                checked = isPlayWithPI,
-                onCheckedChange = { isPlayWithPI = it }
-            )
-        }
+//        Row(
+//            verticalAlignment = Alignment.CenterVertically,
+//            horizontalArrangement = Arrangement.SpaceBetween,
+//            modifier = Modifier.fillMaxWidth()
+//        ) {
+//            Text(text = "Play with \"P\" and \"I\"", fontSize = 18.sp)
+//            Switch(
+//                checked = isPlayWithPI,
+//                onCheckedChange = { isPlayWithPI = it }
+//            )
+//        }
     }
 }
 
@@ -148,6 +151,36 @@ fun SoundToggleRow() {
         )
     }
 }
+
+@Composable
+fun FlickerToggleRow() {
+    val context = LocalContext.current
+    var shouldFlicker by rememberSaveable {
+        mutableStateOf(
+            PreferencesManager.get(context, "should_flicker", true)
+        )
+    }
+
+    LaunchedEffect(shouldFlicker) {
+        PreferencesManager.save(context, "should_flicker", shouldFlicker)
+    }
+
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Text(text = "Flicker Animation", fontSize = 18.sp)
+        Switch(
+            checked = shouldFlicker,
+            onCheckedChange = {
+                shouldFlicker = it
+                PreferencesManager.save(context, "should_flicker", it)
+            }
+        )
+    }
+}
+
 
 
 @Preview(showBackground = true)
