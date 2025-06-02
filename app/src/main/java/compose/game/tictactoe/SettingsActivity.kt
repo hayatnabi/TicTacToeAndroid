@@ -1,11 +1,9 @@
 package compose.game.tictactoe
 
 import android.app.Activity
-import android.graphics.drawable.Icon
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -17,7 +15,6 @@ import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -66,10 +63,6 @@ class SettingsActivity : ComponentActivity() {
                                 titleContentColor = Color.White,    // Title text color
                                 navigationIconContentColor = Color.White // Back icon color
                             )
-
-//                            colors = TopAppBarDefaults.mediumTopAppBarColors(
-//                                containerColor = MaterialTheme.colorScheme.primary
-//                            )
                         )
                     }
                 ) { innerPadding ->
@@ -89,11 +82,25 @@ class SettingsActivity : ComponentActivity() {
 fun SettingsWidget(modifier: Modifier = Modifier) {
     var isDarkMode by rememberSaveable { mutableStateOf(false) }
     var isPlayWithPI by rememberSaveable { mutableStateOf(false) }
+    var shouldPlaySound by rememberSaveable { mutableStateOf(true) }
 
     Column(
         modifier = modifier,
         verticalArrangement = Arrangement.spacedBy(24.dp)
     ) {
+        // Play Sound
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text(text = "Sound", fontSize = 18.sp)
+            Switch(
+                checked = shouldPlaySound,
+                onCheckedChange = { shouldPlaySound = it }
+            )
+        }
+
         // Dark Mode Toggle
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -133,36 +140,3 @@ fun SettingsPreview() {
         )
     }
 }
-
-//class SettingsActivity : ComponentActivity() {
-//    override fun onCreate(savedInstanceState: Bundle?) {
-//        super.onCreate(savedInstanceState)
-//        enableEdgeToEdge()
-//        setContent {
-//            TicTacToeComposeTheme {
-//                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-//                    SettingsWidget(
-//                        name = "Android",
-//                        modifier = Modifier.padding(innerPadding)
-//                    )
-//                }
-//            }
-//        }
-//    }
-//}
-//
-//@Composable
-//fun SettingsWidget(name: String, modifier: Modifier = Modifier) {
-//    Text(
-//        text = "Hello $name!",
-//        modifier = modifier
-//    )
-//}
-//
-//@Preview(showBackground = true)
-//@Composable
-//fun GreetingPreview2() {
-//    TicTacToeComposeTheme {
-//        SettingsWidget("Android")
-//    }
-//}
