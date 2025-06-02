@@ -1,4 +1,4 @@
-package compose.game.tictactoe
+package compose.game.tictactoe.ui
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -34,7 +34,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import compose.game.tictactoe.R
 import compose.game.tictactoe.ui.theme.TicTacToeComposeTheme
+import compose.game.tictactoe.utils.MediaPlayerManager
+import compose.game.tictactoe.utils.MyApp
 
 class GameActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -44,6 +47,16 @@ class GameActivity : ComponentActivity() {
                 TicTacToeGameScreen()
             }
         }
+    }
+
+    override fun onPause() {
+        super.onPause()
+        MediaPlayerManager.release()
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        MediaPlayerManager.release()
     }
 }
 
@@ -91,12 +104,20 @@ fun TicTacToeGameScreen() {
             }
         }
 
+        if (currentPlayer == "X") {
+            MediaPlayerManager.playSound(MyApp.context, R.raw.i_move)
+        } else {
+            MediaPlayerManager.playSound(MyApp.context, R.raw.p_move)
+        }
+
         val winner = checkWinner()
         if (winner != null) {
             winnerMessage = "Player $winner wins!"
+            MediaPlayerManager.playSound(MyApp.context, R.raw.win_sound)
             if (winner == "X") player1Score++ else player2Score++
         } else if (isBoardFull()) {
             winnerMessage = "It's a draw!"
+            MediaPlayerManager.playSound(MyApp.context, R.raw.draw_sound)
         } else {
             currentPlayer = if (currentPlayer == "X") "O" else "X"
         }
@@ -192,7 +213,7 @@ fun TicTacToeGameScreen() {
                                         }
                                     }
                                     .clickable { handleMove(row, col) },
-                                contentAlignment = Alignment.Center
+                                                            contentAlignment = Alignment.Center
                             ) {
                                 Box(
                                     modifier = Modifier

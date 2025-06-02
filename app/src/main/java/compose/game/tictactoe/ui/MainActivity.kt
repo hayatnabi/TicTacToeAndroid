@@ -1,4 +1,4 @@
-package compose.game.tictactoe
+package compose.game.tictactoe.ui
 
 import android.content.Intent
 import android.os.Bundle

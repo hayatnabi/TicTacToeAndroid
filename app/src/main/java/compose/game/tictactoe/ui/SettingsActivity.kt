@@ -1,4 +1,4 @@
-package compose.game.tictactoe
+package compose.game.tictactoe.ui
 
 import android.app.Activity
 import android.os.Bundle
@@ -21,6 +21,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -34,6 +35,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import compose.game.tictactoe.ui.theme.JadeGreen
 import compose.game.tictactoe.ui.theme.TicTacToeComposeTheme
+import compose.game.tictactoe.utils.PreferencesManager
 
 class SettingsActivity : ComponentActivity() {
     @OptIn(ExperimentalMaterial3Api::class)
@@ -59,7 +61,7 @@ class SettingsActivity : ComponentActivity() {
                                 }
                             },
                             colors = TopAppBarDefaults.mediumTopAppBarColors(
-                                containerColor = JadeGreen, // Set your background color here
+                                containerColor = JadeGreen, // background color here
                                 titleContentColor = Color.White,    // Title text color
                                 navigationIconContentColor = Color.White // Back icon color
                             )
@@ -82,24 +84,12 @@ class SettingsActivity : ComponentActivity() {
 fun SettingsWidget(modifier: Modifier = Modifier) {
     var isDarkMode by rememberSaveable { mutableStateOf(false) }
     var isPlayWithPI by rememberSaveable { mutableStateOf(false) }
-    var shouldPlaySound by rememberSaveable { mutableStateOf(true) }
 
     Column(
         modifier = modifier,
         verticalArrangement = Arrangement.spacedBy(24.dp)
     ) {
-        // Play Sound
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text(text = "Sound", fontSize = 18.sp)
-            Switch(
-                checked = shouldPlaySound,
-                onCheckedChange = { shouldPlaySound = it }
-            )
-        }
+        SoundToggleRow()
 
         // Dark Mode Toggle
         Row(
@@ -128,6 +118,37 @@ fun SettingsWidget(modifier: Modifier = Modifier) {
         }
     }
 }
+
+@Composable
+fun SoundToggleRow() {
+    val context = LocalContext.current
+    var shouldPlaySound by rememberSaveable {
+        mutableStateOf(
+            PreferencesManager.get(context, "should_play_sound", true)
+        )
+    }
+
+    LaunchedEffect(shouldPlaySound) {
+        PreferencesManager.save(context, "should_play_sound", shouldPlaySound)
+    }
+
+    // Play Sound
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Text(text = "Sound", fontSize = 18.sp)
+        Switch(
+            checked = shouldPlaySound,
+            onCheckedChange = {
+                shouldPlaySound = it
+                PreferencesManager.save(context, "should_play_sound", it)
+            }
+        )
+    }
+}
+
 
 @Preview(showBackground = true)
 @Composable
