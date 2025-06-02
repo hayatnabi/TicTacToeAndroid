@@ -19,8 +19,10 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -38,6 +40,7 @@ import compose.game.tictactoe.R
 import compose.game.tictactoe.ui.theme.TicTacToeComposeTheme
 import compose.game.tictactoe.utils.MediaPlayerManager
 import compose.game.tictactoe.utils.MyApp
+import kotlinx.coroutines.delay
 
 class GameActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -60,7 +63,6 @@ class GameActivity : ComponentActivity() {
     }
 }
 
-
 @Preview
 @Composable
 fun TicTacToeGameScreen() {
@@ -70,24 +72,34 @@ fun TicTacToeGameScreen() {
     var player2Score by remember { mutableIntStateOf(0) }
     var winnerMessage by remember { mutableStateOf<String?>(null) }
 
+    // Store the winning line (the values) and also the positions of the winning cells for flicker
+    var winningLinePositions by remember { mutableStateOf<List<Pair<Int, Int>>?>(null) }
+
+    // Modified checkWinner returns the winner symbol and updates winningLinePositions
     fun checkWinner(): String? {
         val lines = listOf(
-            // Rows
-            listOf(board[0][0], board[0][1], board[0][2]),
-            listOf(board[1][0], board[1][1], board[1][2]),
-            listOf(board[2][0], board[2][1], board[2][2]),
-            // Columns
-            listOf(board[0][0], board[1][0], board[2][0]),
-            listOf(board[0][1], board[1][1], board[2][1]),
-            listOf(board[0][2], board[1][2], board[2][2]),
-            // Diagonals
-            listOf(board[0][0], board[1][1], board[2][2]),
-            listOf(board[0][2], board[1][1], board[2][0])
+            listOf(Pair(0, 0), Pair(0, 1), Pair(0, 2)), // Row 0
+            listOf(Pair(1, 0), Pair(1, 1), Pair(1, 2)), // Row 1
+            listOf(Pair(2, 0), Pair(2, 1), Pair(2, 2)), // Row 2
+            listOf(Pair(0, 0), Pair(1, 0), Pair(2, 0)), // Col 0
+            listOf(Pair(0, 1), Pair(1, 1), Pair(2, 1)), // Col 1
+            listOf(Pair(0, 2), Pair(1, 2), Pair(2, 2)), // Col 2
+            listOf(Pair(0, 0), Pair(1, 1), Pair(2, 2)), // Diag
+            listOf(Pair(0, 2), Pair(1, 1), Pair(2, 0))  // Diag
         )
+
         for (line in lines) {
-            if (line.all { it == "X" }) return "X"
-            if (line.all { it == "O" }) return "O"
+            val values = line.map { (r, c) -> board[r][c] }
+            if (values.all { it == "X" }) {
+                winningLinePositions = line
+                return "X"
+            }
+            if (values.all { it == "O" }) {
+                winningLinePositions = line
+                return "O"
+            }
         }
+        winningLinePositions = null
         return null
     }
 
@@ -127,6 +139,20 @@ fun TicTacToeGameScreen() {
         board = List(3) { MutableList(3) { "" } }
         currentPlayer = "X"
         winnerMessage = null
+        winningLinePositions = null
+    }
+
+    // Flicker logic: For the winning boxes, toggle visibility 3 times (flicker)
+    // We'll use a Boolean state that toggles every 300ms, 6 times (3 flickers = on-off-on-off-on-off)
+    val flickerVisible = remember { mutableStateOf(true) }
+    LaunchedEffect(winningLinePositions) {
+        if (winningLinePositions != null) {
+            repeat(6) {
+                flickerVisible.value = !flickerVisible.value
+                kotlinx.coroutines.delay(100)
+            }
+            flickerVisible.value = true // Ensure visible at the end
+        }
     }
 
     Column(
@@ -186,6 +212,14 @@ fun TicTacToeGameScreen() {
                 for (row in 0..2) {
                     Row {
                         for (col in 0..2) {
+                            val isWinningBox = winningLinePositions?.contains(Pair(row, col)) == true
+                            val backgroundColor = when {
+                                isWinningBox && !flickerVisible.value -> Color.Transparent
+                                board[row][col] == "X" -> Color(0xFFC8E6C9) // Green
+                                board[row][col] == "O" -> Color(0xFFBBDEFB) // Blue
+                                else -> Color.Transparent
+                            }
+
                             Box(
                                 modifier = Modifier
                                     .size(110.dp)
@@ -213,19 +247,13 @@ fun TicTacToeGameScreen() {
                                         }
                                     }
                                     .clickable { handleMove(row, col) },
-                                                            contentAlignment = Alignment.Center
+                                contentAlignment = Alignment.Center
                             ) {
                                 Box(
                                     modifier = Modifier
                                         .fillMaxSize()
                                         .padding(3.dp)
-                                        .background(
-                                            when (board[row][col]) {
-                                                "X" -> Color(0xFFC8E6C9) // Green
-                                                "O" -> Color(0xFFBBDEFB) // Blue
-                                                else -> Color.Transparent
-                                            }
-                                        ),
+                                        .background(backgroundColor),
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Text(
