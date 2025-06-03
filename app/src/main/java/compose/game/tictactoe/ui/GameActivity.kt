@@ -40,6 +40,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import compose.game.tictactoe.R
 import compose.game.tictactoe.ui.theme.TicTacToeComposeTheme
+import compose.game.tictactoe.utils.Constants
 import compose.game.tictactoe.utils.MediaPlayerManager
 import compose.game.tictactoe.utils.MyApp
 import compose.game.tictactoe.utils.PreferencesManager
@@ -69,6 +70,8 @@ class GameActivity : ComponentActivity() {
 @Preview
 @Composable
 fun TicTacToeGameScreen() {
+    val context = LocalContext.current
+
     var board by remember { mutableStateOf(List(3) { MutableList(3) { "" } }) }
     var currentPlayer by remember { mutableStateOf("X") }
     var player1Score by remember { mutableIntStateOf(0) }
@@ -77,6 +80,11 @@ fun TicTacToeGameScreen() {
 
     // Store the winning line (the values) and also the positions of the winning cells for flicker
     var winningLinePositions by remember { mutableStateOf<List<Pair<Int, Int>>?>(null) }
+
+    LaunchedEffect(Unit) {
+        player1Score = PreferencesManager.get(context, Constants.KEY_SCORE_PLAYER_1, 0)
+        player2Score = PreferencesManager.get(context, Constants.KEY_SCORE_PLAYER_2, 0)
+    }
 
     // Modified checkWinner returns the winner symbol and updates winningLinePositions
     fun checkWinner(): String? {
@@ -129,7 +137,13 @@ fun TicTacToeGameScreen() {
         if (winner != null) {
             winnerMessage = "Player $winner wins!"
             MediaPlayerManager.playSound(MyApp.context, R.raw.win_sound)
+            player1Score = PreferencesManager.get(MyApp.context, Constants.KEY_SCORE_PLAYER_1, 0)
+            player2Score = PreferencesManager.get(MyApp.context, Constants.KEY_SCORE_PLAYER_2, 0)
             if (winner == "X") player1Score++ else player2Score++
+
+            // saving the score here for player 1 and 2
+            PreferencesManager.save(MyApp.context, Constants.KEY_SCORE_PLAYER_1, player1Score)
+            PreferencesManager.save(MyApp.context, Constants.KEY_SCORE_PLAYER_2, player2Score)
         } else if (isBoardFull()) {
             winnerMessage = "It's a draw!"
             MediaPlayerManager.playSound(MyApp.context, R.raw.draw_sound)
@@ -145,7 +159,14 @@ fun TicTacToeGameScreen() {
         winningLinePositions = null
     }
 
-    val context = LocalContext.current
+    fun resetScore() {
+        // updating UI
+        player1Score = 0
+        player2Score = 0
+        PreferencesManager.save(MyApp.context, Constants.KEY_SCORE_PLAYER_1, 0)
+        PreferencesManager.save(MyApp.context, Constants.KEY_SCORE_PLAYER_2, 0)
+    }
+
     val shouldFlickerWin by remember {
         mutableStateOf(
             PreferencesManager.get(context, "should_flicker", true)
@@ -287,20 +308,36 @@ fun TicTacToeGameScreen() {
                 }
             }
         }
+        Column {
+            // Reset Score Button
+            Button(
+                onClick = { resetScore() },
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color(0xFFFF9800), // Orange
+                    contentColor = Color.White
+                ),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .align(Alignment.CenterHorizontally)
+                    .padding(bottom = 8.dp)
+            ) {
+                Text("Reset Score", fontWeight = FontWeight.Bold)
+            }
 
-        // Reset Button at Bottom Center
-        Button(
-            onClick = { resetBoard() },
-            colors = ButtonDefaults.buttonColors(
-                containerColor = Color(0xFFF44336), // Moderate red
-                contentColor = Color.White
-            ),
-            modifier = Modifier
-                .fillMaxWidth()
-                .align(Alignment.CenterHorizontally)
-                .padding(bottom = 16.dp)
-        ) {
-            Text("Reset Game", fontWeight = FontWeight.Bold)
+            // Reset Button at Bottom Center
+            Button(
+                onClick = { resetBoard() },
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color(0xFFF44336), // Moderate red
+                    contentColor = Color.White
+                ),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .align(Alignment.CenterHorizontally)
+                    .padding(bottom = 16.dp)
+            ) {
+                Text("Reset Game", fontWeight = FontWeight.Bold)
+            }
         }
     }
 }

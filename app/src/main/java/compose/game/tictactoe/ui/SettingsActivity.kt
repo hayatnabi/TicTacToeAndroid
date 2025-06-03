@@ -35,6 +35,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import compose.game.tictactoe.ui.theme.JadeGreen
 import compose.game.tictactoe.ui.theme.TicTacToeComposeTheme
+import compose.game.tictactoe.utils.Constants
 import compose.game.tictactoe.utils.PreferencesManager
 
 class SettingsActivity : ComponentActivity() {
@@ -132,7 +133,7 @@ fun SoundToggleRow() {
     }
 
     LaunchedEffect(shouldPlaySound) {
-        PreferencesManager.save(context, "should_play_sound", shouldPlaySound)
+        PreferencesManager.save(context, Constants.KEY_SHOULD_PLAY_SOUND, shouldPlaySound)
     }
 
     // Play Sound
@@ -146,7 +147,7 @@ fun SoundToggleRow() {
             checked = shouldPlaySound,
             onCheckedChange = {
                 shouldPlaySound = it
-                PreferencesManager.save(context, "should_play_sound", it)
+                PreferencesManager.save(context, Constants.KEY_SHOULD_PLAY_SOUND, it)
             }
         )
     }
@@ -162,7 +163,7 @@ fun FlickerToggleRow() {
     }
 
     LaunchedEffect(shouldFlicker) {
-        PreferencesManager.save(context, "should_flicker", shouldFlicker)
+        PreferencesManager.save(context, Constants.KEY_SHOULD_FLICKER, shouldFlicker)
     }
 
     Row(
@@ -175,7 +176,7 @@ fun FlickerToggleRow() {
             checked = shouldFlicker,
             onCheckedChange = {
                 shouldFlicker = it
-                PreferencesManager.save(context, "should_flicker", it)
+                PreferencesManager.save(context, Constants.KEY_SHOULD_FLICKER, it)
             }
         )
     }
