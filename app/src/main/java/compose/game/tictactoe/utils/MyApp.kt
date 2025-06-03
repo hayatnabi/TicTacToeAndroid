@@ -14,6 +14,6 @@ class MyApp : Application() {
         private var instance: MyApp? = null
 
         val context: Context
-            get() = instance!!.applicationContext
+            get() = instance?.applicationContext!!
     }
 }

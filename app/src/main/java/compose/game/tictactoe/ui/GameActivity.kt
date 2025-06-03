@@ -21,11 +21,13 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -38,6 +40,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.lifecycleScope
 import compose.game.tictactoe.R
 import compose.game.tictactoe.ui.theme.TicTacToeComposeTheme
 import compose.game.tictactoe.utils.Constants
@@ -45,6 +48,11 @@ import compose.game.tictactoe.utils.MediaPlayerManager
 import compose.game.tictactoe.utils.MyApp
 import compose.game.tictactoe.utils.PreferencesManager
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
+import kotlin.math.absoluteValue
 
 class GameActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -81,9 +89,11 @@ fun TicTacToeGameScreen() {
     // Store the winning line (the values) and also the positions of the winning cells for flicker
     var winningLinePositions by remember { mutableStateOf<List<Pair<Int, Int>>?>(null) }
 
+    val scope = rememberCoroutineScope()
+
     LaunchedEffect(Unit) {
-        player1Score = PreferencesManager.get(context, Constants.KEY_SCORE_PLAYER_1, 0)
-        player2Score = PreferencesManager.get(context, Constants.KEY_SCORE_PLAYER_2, 0)
+        player1Score = PreferencesManager.get(context, Constants.KEY_SCORE_PLAYER_1, 0).first()
+        player2Score = PreferencesManager.get(context, Constants.KEY_SCORE_PLAYER_2, 0).first()
     }
 
     // Modified checkWinner returns the winner symbol and updates winningLinePositions
@@ -128,25 +138,35 @@ fun TicTacToeGameScreen() {
         }
 
         if (currentPlayer == "X") {
-            MediaPlayerManager.playSound(MyApp.context, R.raw.i_move)
+            scope.launch {
+                MediaPlayerManager.playSound(MyApp.context, R.raw.i_move)
+            }
         } else {
-            MediaPlayerManager.playSound(MyApp.context, R.raw.p_move)
+            scope.launch {
+                MediaPlayerManager.playSound(MyApp.context, R.raw.p_move)
+            }
         }
 
         val winner = checkWinner()
         if (winner != null) {
             winnerMessage = "Player $winner wins!"
-            MediaPlayerManager.playSound(MyApp.context, R.raw.win_sound)
-            player1Score = PreferencesManager.get(MyApp.context, Constants.KEY_SCORE_PLAYER_1, 0)
-            player2Score = PreferencesManager.get(MyApp.context, Constants.KEY_SCORE_PLAYER_2, 0)
+            scope.launch {
+                MediaPlayerManager.playSound(MyApp.context, R.raw.win_sound)
+            }
+
             if (winner == "X") player1Score++ else player2Score++
 
-            // saving the score here for player 1 and 2
-            PreferencesManager.save(MyApp.context, Constants.KEY_SCORE_PLAYER_1, player1Score)
-            PreferencesManager.save(MyApp.context, Constants.KEY_SCORE_PLAYER_2, player2Score)
+            // update scores:
+            scope.launch {
+                // saving the score here for player 1 and 2
+                PreferencesManager.save(context, Constants.KEY_SCORE_PLAYER_1, player1Score)
+                PreferencesManager.save(context, Constants.KEY_SCORE_PLAYER_2, player2Score)
+            }
         } else if (isBoardFull()) {
             winnerMessage = "It's a draw!"
-            MediaPlayerManager.playSound(MyApp.context, R.raw.draw_sound)
+            scope.launch {
+                MediaPlayerManager.playSound(MyApp.context, R.raw.draw_sound)
+            }
         } else {
             currentPlayer = if (currentPlayer == "X") "O" else "X"
         }
@@ -163,18 +183,16 @@ fun TicTacToeGameScreen() {
         // updating UI
         player1Score = 0
         player2Score = 0
-        PreferencesManager.save(MyApp.context, Constants.KEY_SCORE_PLAYER_1, 0)
-        PreferencesManager.save(MyApp.context, Constants.KEY_SCORE_PLAYER_2, 0)
-    }
-
-    val shouldFlickerWin by remember {
-        mutableStateOf(
-            PreferencesManager.get(context, "should_flicker", true)
-        )
+        scope.launch {
+            PreferencesManager.save(context, Constants.KEY_SCORE_PLAYER_1, 0)
+            PreferencesManager.save(context, Constants.KEY_SCORE_PLAYER_2, 0)
+        }
     }
 
     // Flicker logic: For the winning boxes, toggle visibility 3 times (flicker)
     // We'll use a Boolean state that toggles every 100ms, 6 times (3 flickers = on-off-on-off-on-off)
+    val shouldFlickerWin by PreferencesManager.get(context, Constants.KEY_SHOULD_FLICKER, true).collectAsState(initial = true)
+
     var flickerVisible = remember { mutableStateOf(true) }
     if (shouldFlickerWin) {
         flickerVisible = remember { mutableStateOf(true) }

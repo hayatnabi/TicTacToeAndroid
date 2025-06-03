@@ -22,8 +22,11 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -37,6 +40,8 @@ import compose.game.tictactoe.ui.theme.JadeGreen
 import compose.game.tictactoe.ui.theme.TicTacToeComposeTheme
 import compose.game.tictactoe.utils.Constants
 import compose.game.tictactoe.utils.PreferencesManager
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 
 class SettingsActivity : ComponentActivity() {
     @OptIn(ExperimentalMaterial3Api::class)
@@ -126,17 +131,21 @@ fun SettingsWidget(modifier: Modifier = Modifier) {
 @Composable
 fun SoundToggleRow() {
     val context = LocalContext.current
-    var shouldPlaySound by rememberSaveable {
-        mutableStateOf(
-            PreferencesManager.get(context, "should_play_sound", true)
-        )
+    val scope = rememberCoroutineScope()
+
+    val shouldPlaySound = remember { mutableStateOf(true) }
+
+    // Load initial value
+    LaunchedEffect(Unit) {
+        shouldPlaySound.value =
+            PreferencesManager.get(context, Constants.KEY_SHOULD_PLAY_SOUND, true).first()
     }
 
-    LaunchedEffect(shouldPlaySound) {
-        PreferencesManager.save(context, Constants.KEY_SHOULD_PLAY_SOUND, shouldPlaySound)
+    // Save when value changes
+    LaunchedEffect(shouldPlaySound.value) {
+        PreferencesManager.save(context, Constants.KEY_SHOULD_PLAY_SOUND, shouldPlaySound.value)
     }
 
-    // Play Sound
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -144,10 +153,12 @@ fun SoundToggleRow() {
     ) {
         Text(text = "Sound", fontSize = 18.sp)
         Switch(
-            checked = shouldPlaySound,
+            checked = shouldPlaySound.value,
             onCheckedChange = {
-                shouldPlaySound = it
-                PreferencesManager.save(context, Constants.KEY_SHOULD_PLAY_SOUND, it)
+                shouldPlaySound.value = it
+                scope.launch {
+                    PreferencesManager.save(context, Constants.KEY_SHOULD_PLAY_SOUND, it)
+                }
             }
         )
     }
@@ -156,14 +167,17 @@ fun SoundToggleRow() {
 @Composable
 fun FlickerToggleRow() {
     val context = LocalContext.current
-    var shouldFlicker by rememberSaveable {
-        mutableStateOf(
-            PreferencesManager.get(context, "should_flicker", true)
-        )
+    val scope = rememberCoroutineScope()
+
+    val shouldFlicker = remember { mutableStateOf(true) }
+
+    LaunchedEffect(Unit) {
+        shouldFlicker.value =
+            PreferencesManager.get(context, Constants.KEY_SHOULD_FLICKER, true).first()
     }
 
-    LaunchedEffect(shouldFlicker) {
-        PreferencesManager.save(context, Constants.KEY_SHOULD_FLICKER, shouldFlicker)
+    LaunchedEffect(shouldFlicker.value) {
+        PreferencesManager.save(context, Constants.KEY_SHOULD_FLICKER, shouldFlicker.value)
     }
 
     Row(
@@ -173,16 +187,16 @@ fun FlickerToggleRow() {
     ) {
         Text(text = "Flicker Animation", fontSize = 18.sp)
         Switch(
-            checked = shouldFlicker,
+            checked = shouldFlicker.value,
             onCheckedChange = {
-                shouldFlicker = it
-                PreferencesManager.save(context, Constants.KEY_SHOULD_FLICKER, it)
+                shouldFlicker.value = it
+                scope.launch {
+                    PreferencesManager.save(context, Constants.KEY_SHOULD_FLICKER, it)
+                }
             }
         )
     }
 }
-
-
 
 @Preview(showBackground = true)
 @Composable

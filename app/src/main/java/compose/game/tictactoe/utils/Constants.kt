@@ -2,6 +2,7 @@ package compose.game.tictactoe.utils
 
 object Constants {
     // keys
+    const val KEY_PREFS_NAME = "app_preferences"
     const val KEY_SCORE_PLAYER_1 = "score_player_1"
     const val KEY_SCORE_PLAYER_2 = "score_player_2"
     const val KEY_SHOULD_FLICKER = "should_flicker"
