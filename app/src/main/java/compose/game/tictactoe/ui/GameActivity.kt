@@ -15,9 +15,17 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
@@ -32,12 +40,16 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.focus.focusModifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.lifecycleScope
@@ -75,6 +87,11 @@ class GameActivity : ComponentActivity() {
     }
 }
 
+enum class GameMode(val label: String) {
+    TWO_PLAYER("Two Player"),
+    PLAY_WITH_COMPUTER("Play with Computer")
+}
+
 @Preview
 @Composable
 fun TicTacToeGameScreen() {
@@ -85,6 +102,9 @@ fun TicTacToeGameScreen() {
     var player1Score by remember { mutableIntStateOf(0) }
     var player2Score by remember { mutableIntStateOf(0) }
     var winnerMessage by remember { mutableStateOf<String?>(null) }
+
+    var selectedGameMode by remember { mutableStateOf(GameMode.TWO_PLAYER) }
+//    var expanded by remember { mutableStateOf(false) }
 
     // Store the winning line (the values) and also the positions of the winning cells for flicker
     var winningLinePositions by remember { mutableStateOf<List<Pair<Int, Int>>?>(null) }
@@ -170,6 +190,22 @@ fun TicTacToeGameScreen() {
         } else {
             currentPlayer = if (currentPlayer == "X") "O" else "X"
         }
+
+        if (selectedGameMode == GameMode.PLAY_WITH_COMPUTER && currentPlayer == "O") {
+            scope.launch {
+                delay(100) // small delay to simulate thinking
+
+                // Find first empty cell (basic AI, you can improve later)
+                outer@for (r in 0..2) {
+                    for (c in 0..2) {
+                        if (board[r][c].isEmpty()) {
+                            handleMove(r, c)
+                            break@outer
+                        }
+                    }
+                }
+            }
+        }
     }
 
     fun resetBoard() {
@@ -214,7 +250,25 @@ fun TicTacToeGameScreen() {
             .padding(16.dp),
         verticalArrangement = Arrangement.SpaceBetween
     ) {
-        Column {
+        Column(modifier = Modifier.padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+            // Popup for Game Mode
+            var showDialog by remember { mutableStateOf(false) }
+
+            Column(modifier = Modifier.padding(top = 24.dp, bottom = 16.dp)) {
+                Button(modifier = Modifier.align(Alignment.CenterHorizontally), onClick = { showDialog = true }) {
+                    Text("Select Game Mode")
+                }
+
+                Text("Selected Mode: ${selectedGameMode.label}")
+
+                GameModeDialog(
+                    showDialog = showDialog,
+                    currentSelection = selectedGameMode,
+                    onDismiss = { showDialog = false },
+                    onApply = { selectedGameMode = it }
+                )
+            }
+
             // Scoreboard
             Text(
                 "Scoreboard",
@@ -359,3 +413,53 @@ fun TicTacToeGameScreen() {
         }
     }
 }
+
+@Composable
+fun GameModeDialog(
+    showDialog: Boolean,
+    currentSelection: GameMode,
+    onDismiss: () -> Unit,
+    onApply: (GameMode) -> Unit
+) {
+    if (showDialog) {
+        var selectedOption by remember { mutableStateOf(currentSelection) }
+
+        AlertDialog(
+            onDismissRequest = onDismiss,
+            title = { Text(text = "Select Game Mode") },
+            text = {
+                Column {
+                    GameMode.entries.forEach { mode ->
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 4.dp)
+                                .clickable { selectedOption = mode }
+                        ) {
+                            RadioButton(
+                                selected = selectedOption == mode,
+                                onClick = { selectedOption = mode }
+                            )
+                            Text(text = mode.label)
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    onApply(selectedOption)
+                    onDismiss()
+                }) {
+                    Text("Apply")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = onDismiss) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+}
+
